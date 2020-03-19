@@ -24,8 +24,8 @@ from dateutil import relativedelta
 
 #TODO determine optimal number of images/segment distance based on length of video? (so longer videos don't have huge sprites)
 
-USE_SIPS = True #True to use sips if using MacOSX (creates slightly smaller sprites), else set to False to use ImageMagick
-THUMB_RATE_SECONDS=45 # every Nth second take a snapshot
+USE_SIPS = False #True to use sips if using MacOSX (creates slightly smaller sprites), else set to False to use ImageMagick
+THUMB_RATE_SECONDS=1 # every Nth second take a snapshot
 THUMB_WIDTH=100 #100-150 is width recommended by JWPlayer; I like smaller files
 SKIP_FIRST=True #True to skip a thumbnail of second 1; often not a useful image, plus JWPlayer doesn't seem to show it anyway, and user knows beginning without needing preview
 SPRITE_NAME = "sprite.jpg" #jpg is much smaller than png, so using jpg
@@ -80,7 +80,7 @@ def makeOutDir(videofile):
     elif os.path.exists(newoutdir) and not USE_UNIQUE_OUTDIR:
         #remove previous contents if reusing outdir
         files = os.listdir(newoutdir)
-        print "Removing previous contents of output directory: %s" % newoutdir
+        print("Removing previous contents of output directory: %s" % newoutdir)
         for f in files:
             os.unlink(os.path.join(newoutdir,f))
     return newoutdir
@@ -91,7 +91,7 @@ def doCmd(cmd,logger=logger):  #execute a shell command and return/print its out
     output = None
     try:
         output = subprocess.check_output(args, stderr=subprocess.STDOUT) #pipe stderr into stdout
-    except Exception, e:
+    except Exception as e:
         ret = "ERROR   [%s] An exception occurred\n%s\n%s" % (datetime.datetime.now(),output,str(e))
         logger.error(ret)
         raise e #todo ?
@@ -142,7 +142,9 @@ def get_geometry(file):
         100x2772+0+0 - sprite2.jpg
         4200x66+0+0 - sprite2h.jpg"""
     geom = doCmd("""identify -format "%%g - %%f\n" %s""" % pipes.quote(file))
-    parts = geom.split("-",1)
+    print("About to split!")
+    print(geom)
+    parts = geom.decode().split("-",1)
     return parts[0].strip() #return just the geometry prefix of the line, sans extra whitespace
 
 def makevtt(spritefile,numsegments,coords,gridsize,writefile,thumbRate=None):
@@ -219,6 +221,7 @@ def makesprite(outdir,spritefile,coords,gridsize):
      base the sprite size on the number of thumbs we need to make into a grid."""
     grid = "%dx%d" % (gridsize,gridsize)
     cmd = "montage %s/tv*.jpg -tile %s -geometry %s %s" % (pipes.quote(outdir), grid, coords, pipes.quote(spritefile))#if video had more than 144 thumbs, would need to be bigger grid, making it big to cover all our case
+    print("About to run "+cmd)
     doCmd(cmd)
 
 def writevtt(vttfile,contents):
@@ -270,7 +273,7 @@ def addLogging():
         basescript = os.path.splitext(os.path.basename(sys.argv[0]))[0]
         LOG_FILENAME = 'logs/%s.%s.log'% (basescript,datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) #new log per job so we can run this program concurrently
         #CONSOLE AND FILE LOGGING
-        print "Writing log to: %s" % LOG_FILENAME
+        print("Writing log to: %s" % LOG_FILENAME)
         if not os.path.exists('logs'):
             os.makedirs('logs')
         logger.setLevel(logging.DEBUG)
